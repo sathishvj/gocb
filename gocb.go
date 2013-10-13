@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -19,6 +20,7 @@ func main() {
 	test := flag.Bool("t", false, "execute tests once if build was ok (untried)")
 	silent := flag.Bool("s", false, "fairly silent in output")
 	interval := flag.Int("i", 1, "Polling interval (in seconds)")
+	//params := flag.String("p", "", "Parameters to be sent to program when run")
 	flag.Parse()
 	//anyFlags := help
 
@@ -93,6 +95,7 @@ func main() {
 
 var prevFileMod time.Time
 var prevDirMod map[string]time.Time
+var dirChanges []string
 
 //returns true if there are changes
 //returns an array of files that have changes
@@ -104,6 +107,37 @@ func isChanged(watch string) (bool, []string, error) {
 	}
 	isDir := fi.IsDir()
 	if isDir {
+		if prevDirMod == nil {
+			prevDirMod = make(map[string]time.Time)
+		}
+
+		visit := func(path string, info os.FileInfo, e error) error {
+			if !info.IsDir() {
+				if strings.HasSuffix(strings.ToLower(path), ".go") {
+					t, ok := prevDirMod[path]
+					if !ok {
+						prevDirMod[path] = info.ModTime()
+						dirChanges = append(dirChanges, path)
+					} else {
+						if info.ModTime().Sub(t) > 0 {
+							prevDirMod[path] = info.ModTime()
+							dirChanges = append(dirChanges, path)
+						}
+					}
+				}
+			}
+			return nil
+		}
+
+		dirChanges = dirChanges[0:0]
+		err := filepath.Walk(watch, visit)
+		if err != nil {
+			return false, nil, err
+		}
+
+		if len(dirChanges) > 0 {
+			return true, dirChanges, nil
+		}
 
 	} else {
 		if fi.ModTime().Sub(prevFileMod) > 0 {
