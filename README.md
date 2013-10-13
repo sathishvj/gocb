@@ -37,6 +37,5 @@ Checked this only on Mac OS X and with single files. If you find any bugs, pleas
 
 ## ToDo
 * Watch directories for changes.
-* Add option to do test if build is successful.
 * Add option to set a specific go binary.
 * In execution mode, add option to quit when q is pressed, toggle run when r is pressed, toggle test when t is pressed, increase/decrease time interval when +/- is pressed.

@@ -14,6 +14,7 @@ import (
 func main() {
 	help := flag.Bool("h", false, "to display this usage listing")
 	run := flag.Bool("r", false, "run the file once if build was ok")
+	test := flag.Bool("t", false, "run the file once if build was ok")
 	interval := flag.Int("i", 1, "Polling interval (in seconds)")
 	flag.Parse()
 	//anyFlags := help
@@ -41,18 +42,26 @@ func main() {
 		}
 		modTime := fi.ModTime()
 		if modTime.Sub(prevMod) > 0 {
-			fmt.Println(">> File change detected: ", watchFile)
-			fmt.Println(">> starting build")
+			fmt.Println("   >> File change detected: ", watchFile)
+			fmt.Println("   >> starting build")
 			prevMod = modTime
 			buildErr := exe(watchFile, "build")
-			if !buildErr && *run {
-				fmt.Println(">> build ok. run starting")
-				exe(watchFile, "run")
-				fmt.Println(">> run finished")
-			} else if buildErr {
-				fmt.Println(">> build finished with errors")
+			if buildErr {
+				fmt.Println("   >> build finished with errors")
 			} else {
-				fmt.Println(">> build ok")
+				fmt.Println("   >> build ok")
+			}
+
+			if !buildErr && *test {
+				fmt.Println("   >> test starting")
+				exe(watchFile, "test")
+				fmt.Println("   >> test finished")
+			}
+
+			if !buildErr && *run {
+				fmt.Println("   >> run starting")
+				exe(watchFile, "run")
+				fmt.Println("   >> run finished")
 			}
 		}
 		time.Sleep(time.Duration(*interval) * time.Second)
