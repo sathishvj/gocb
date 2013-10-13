@@ -23,9 +23,10 @@ gocb -r hello.go
 
 
 ```
-gocb -i 5 hello.go 
+gocb -s -i 5 hello.go 
 ```
 > Poll at an interval of 5 seconds.  Default is 1 second.
+> Also, -s option causes the output to be fairly silent in messages from gocb.
 
 ## Help
 ```

@@ -8,13 +8,16 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"strconv"
+	"strings"
 	"time"
 )
 
 func main() {
 	help := flag.Bool("h", false, "to display this usage listing")
 	run := flag.Bool("r", false, "run the file once if build was ok")
-	test := flag.Bool("t", false, "run the file once if build was ok")
+	test := flag.Bool("t", false, "execute tests once if build was ok (untried)")
+	silent := flag.Bool("s", false, "fairly silent in output")
 	interval := flag.Int("i", 1, "Polling interval (in seconds)")
 	flag.Parse()
 	//anyFlags := help
@@ -30,49 +33,91 @@ func main() {
 		return
 	}
 
-	watchFile := flag.Args()[0]
-	fmt.Println("Watching file:", watchFile)
+	var watch string
+	if len(flag.Args()) == 0 {
+		watch = "."
+	} else {
+		watch = flag.Args()[0]
+	}
+	fmt.Println("Watching:", watch)
 
-	var prevMod time.Time
 	for {
-		fi, err := os.Stat(watchFile)
+		//isChanged := fi.ModTime().Sub(prevMod) > 0
+		changed, changes, err := isChanged(watch)
 		if err != nil {
-			fmt.Println("Error checking file: ", err)
+			fmt.Println("Error: ", err.Error(), "\nExiting.")
 			return
 		}
-		modTime := fi.ModTime()
-		if modTime.Sub(prevMod) > 0 {
-			fmt.Println("   >> File change detected: ", watchFile)
-			fmt.Println("   >> starting build")
-			prevMod = modTime
-			buildErr := exe(watchFile, "build")
-			if buildErr {
-				fmt.Println("   >> build finished with errors")
+
+		if changed {
+			if len(changes) > 3 {
+				changes = append(changes[0:2], "... "+strconv.Itoa(len(changes)))
+			}
+			if !*silent {
+				fmt.Println("  --->> File change detected: ", strings.Join(changes, ","))
+				fmt.Println("     >> starting build")
 			} else {
-				fmt.Println("   >> build ok")
+				fmt.Println("  --->>")
+			}
+			//prevMod = fi.ModTime()
+			buildErr := exe(watch, "build")
+			if buildErr && !*silent {
+				fmt.Println("     >> build finished with errors")
+			} else if !*silent {
+				fmt.Println("     >> build ok")
 			}
 
 			if !buildErr && *test {
-				fmt.Println("   >> test starting")
-				exe(watchFile, "test")
-				fmt.Println("   >> test finished")
+				if !*silent {
+					fmt.Println("     >> test starting")
+				}
+				exe(watch, "test")
+				if !*silent {
+					fmt.Println("     >> test finished")
+				}
 			}
 
 			if !buildErr && *run {
-				fmt.Println("   >> run starting")
-				exe(watchFile, "run")
-				fmt.Println("   >> run finished")
+				if !*silent {
+					fmt.Println("     >> run starting")
+				}
+				exe(watch, "run")
+				if !*silent {
+					fmt.Println("     >> run finished")
+				}
 			}
 		}
 		time.Sleep(time.Duration(*interval) * time.Second)
 	}
+}
 
+var prevFileMod time.Time
+var prevDirMod map[string]time.Time
+
+//returns true if there are changes
+//returns an array of files that have changes
+//return a non nil error if there was an error
+func isChanged(watch string) (bool, []string, error) {
+	fi, err := os.Stat(watch)
+	if err != nil {
+		return false, nil, err
+	}
+	isDir := fi.IsDir()
+	if isDir {
+
+	} else {
+		if fi.ModTime().Sub(prevFileMod) > 0 {
+			prevFileMod = fi.ModTime()
+			return true, []string{watch}, nil
+		}
+	}
+	return false, nil, nil
 }
 
 //returns true if there was an output on std error
-func exe(watchFile string, tool string) bool {
+func exe(watch string, tool string) bool {
 
-	cmd := exec.Command("go", tool, watchFile)
+	cmd := exec.Command("go", tool, watch)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		fmt.Println("Error getting StdoutPipe")
