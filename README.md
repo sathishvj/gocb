@@ -11,9 +11,9 @@ The best way to use it is to have a second terminal window/pane where gocb is ru
 go get github.com/sathishvj/gocb
 ```
 
-> This will pull down the source and install the gor command in $GOPATH/bin
+> This will pull down the source and install the gocb command in $GOPATH/bin
 
-## Running gor
+## Running gocb
 Make sure that your PATH contains $GOPATH/bin.  Then use gocb from any directory.
 
 ```
@@ -24,7 +24,7 @@ gocb -r hello.go
 
 ## Help
 ```
-gor -h
+gocb -h
 ```
 
 ## Testing
