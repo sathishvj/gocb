@@ -14,6 +14,7 @@ import (
 func main() {
 	help := flag.Bool("h", false, "to display this usage listing")
 	run := flag.Bool("r", false, "run the file once if build was ok")
+	interval := flag.Int("i", 1, "Polling interval (in seconds)")
 	flag.Parse()
 	//anyFlags := help
 
@@ -54,7 +55,7 @@ func main() {
 				fmt.Println(">> build ok")
 			}
 		}
-		time.Sleep(time.Second)
+		time.Sleep(time.Duration(*interval) * time.Second)
 	}
 
 }
